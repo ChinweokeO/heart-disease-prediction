@@ -1,112 +1,138 @@
-import argparse
+import os
 import sys
-from pathlib import Path
-
 import pandas as pd
-from sklearn.model_selection import train_test_split
+import numpy as np
+from pathlib import Path
 from evidently.report import Report
 from evidently.metric_preset import DataDriftPreset
 
+# Configuration
+DRIFT_THRESHOLD = 0.3  # Exit with code 1 if drift share exceeds 30%
+REPORTS_DIR = "reports"
+DATA_DIR = "data"
 
-def load_csv(path: Path) -> pd.DataFrame:
-    return pd.read_csv(path)
+def load_reference_data(filepath):
+    """Load training data as reference distribution"""
+    print(f"Loading reference data from {filepath}...")
+    df = pd.read_csv(filepath)
+    print(f"Reference data shape: {df.shape}")
+    return df
 
+def load_or_generate_production_data(reference_df, production_filepath=None, drift_ratio=0.5):
+    """
+    Load or generate production dataset.
+    If production_filepath is provided, load from it.
+    Otherwise, split reference data and apply drift to simulation.
+    """
+    if production_filepath and os.path.exists(production_filepath):
+        print(f"Loading production data from {production_filepath}...")
+        production_df = pd.read_csv(production_filepath)
+    else:
+        print("Generating production dataset by splitting reference data with drift simulation...")
+        # Split the data
+        split_idx = int(len(reference_df) * drift_ratio)
+        production_df = reference_df.iloc[split_idx:].copy()
+        
+        # Apply synthetic drift to numeric columns
+        numeric_cols = production_df.select_dtypes(include=[np.number]).columns
+        for col in numeric_cols:
+            # Add slight shift and noise to simulate drift
+            production_df[col] = production_df[col] + np.random.normal(
+                loc=production_df[col].std() * 0.2,
+                scale=production_df[col].std() * 0.1,
+                size=len(production_df)
+            )
+    
+    print(f"Production data shape: {production_df.shape}")
+    return production_df
 
-def generate_production_data(reference: pd.DataFrame, test_size: float = 0.3) -> pd.DataFrame:
-    _, production = train_test_split(reference, test_size=test_size, random_state=42)
-    return production
-
-
-def run_evidently_drift_detection(reference: pd.DataFrame, production: pd.DataFrame) -> Report:
-    """Run Evidently data drift detection and return the report."""
+def run_drift_detection(reference_df, production_df):
+    """Run Evidently drift detection on all features"""
+    print("\nRunning drift detection...")
+    
     report = Report(metrics=[DataDriftPreset()])
-    report.run(reference_data=reference, current_data=production)
+    report.run(reference_data=reference_df, current_data=production_df)
+    
     return report
 
-
-def build_report(reference: pd.DataFrame, production: pd.DataFrame) -> Report:
-    return run_evidently_drift_detection(reference, production)
-
-
-def summarize_report(report: Report):
-    report_dict = report.as_dict()
-    metrics = report_dict.get("metrics", [])
-    if not metrics:
-        return [], 0.0, False
-
-    result = metrics[0].get("result", {})
-    dataset_drift = bool(result.get("dataset_drift", False))
-    drift_columns = []
-    data = result.get("data", {})
-    drift_by_columns = data.get("drift_by_columns", [])
-
-    for column in drift_by_columns:
-        name = column.get("column_name") or column.get("feature_name") or "<unknown>"
-        drifted = bool(column.get("drifted", False))
-        score = column.get("drift_score", column.get("drift_stat", None))
-        drift_columns.append((name, drifted, score))
-
-    drift_share = 0.0
-    if drift_columns:
-        drift_share = sum(1 for _, drifted, _ in drift_columns if drifted) / len(drift_columns)
-
-    return drift_columns, drift_share, dataset_drift
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Monitor data drift with Evidently.")
-    parser.add_argument("--reference-data", type=Path, default=None, help="Path to reference CSV file.")
-    parser.add_argument("--production-data", type=Path, default=None, help="Path to production CSV file.")
-    parser.add_argument("--threshold", type=float, default=0.2, help="Feature drift share threshold for failure.")
-    parser.add_argument("--report-dir", type=Path, default=None, help="Directory to save the HTML report.")
-    args = parser.parse_args()
-
-    project_root = Path(__file__).resolve().parents[1]
-    reference_path = args.reference_data or project_root / "data" / "train.csv"
-    if not reference_path.exists():
-        print(f"Reference data not found at {reference_path}", file=sys.stderr)
-        sys.exit(1)
-
-    reference_df = load_csv(reference_path)
-
-    if args.production_data:
-        production_path = args.production_data
-        if not production_path.exists():
-            print(f"Production data not found at {production_path}", file=sys.stderr)
-            sys.exit(1)
-        production_df = load_csv(production_path)
+def print_drift_summary(report):
+    """Print summary of drifted features and overall drift share"""
+    print("\n" + "="*60)
+    print("DRIFT DETECTION SUMMARY")
+    print("="*60)
+    
+    # Extract drift results
+    results = report.as_dict()
+    metrics = results.get("metrics", [])
+    
+    drifted_features = []
+    total_features = 0
+    drift_share = 0
+    
+    for metric in metrics:
+        if "data_drift" in metric.get("metric", ""):
+            metric_result = metric.get("result", {})
+            if "drift_share" in metric_result:
+                drift_share = metric_result["drift_share"]
+                print(f"Overall Drift Share: {drift_share:.2%}")
+            
+            # Check individual column drifts
+            column_drifts = metric_result.get("drift_by_columns", {})
+            for col_name, col_data in column_drifts.items():
+                if col_data.get("drift"):
+                    drifted_features.append(col_name)
+                total_features += 1
+    
+    if drifted_features:
+        print(f"\nDrifted Features ({len(drifted_features)}):")
+        for feature in drifted_features:
+            print(f"  - {feature}")
     else:
-        production_df = generate_production_data(reference_df)
+        print("\nNo significant drift detected in features.")
+    
+    print(f"\nTotal Features Analyzed: {total_features}")
+    print("="*60)
+    
+    return drift_share
 
-    print("Running Evidently data drift detection...")
-    report = run_evidently_drift_detection(reference_df, production_df)
-    report_dir = args.report_dir or project_root / "reports"
-    report_dir.mkdir(parents=True, exist_ok=True)
-    report_path = report_dir / "drift_report.html"
-    report.save_html(str(report_path))
+def save_report(report, output_dir=REPORTS_DIR):
+    """Save HTML report to reports directory"""
+    Path(output_dir).mkdir(exist_ok=True)
+    report_path = os.path.join(output_dir, "drift_report.html")
+    report.save_html(report_path)
+    print(f"\nHTML report saved to: {report_path}")
+    return report_path
 
-    drift_columns, drift_share, dataset_drift = summarize_report(report)
-
-    print("Drift detection summary")
-    print(f"Overall drift share: {drift_share:.2%}")
-    print(f"Dataset drift detected: {dataset_drift}")
-    if drift_columns:
-        print("Feature drift status:")
-        for name, drifted, score in drift_columns:
-            status = "drifted" if drifted else "ok"
-            score_text = f"{score:.4f}" if isinstance(score, (int, float)) else score
-            print(f" - {name}: {status} (score={score_text})")
-    else:
-        print("No feature drift details available.")
-
-    print(f"HTML report saved to {report_path}")
-
-    if drift_share > args.threshold:
-        print(f"Drift share {drift_share:.2%} exceeds threshold {args.threshold:.2%}", file=sys.stderr)
+def main():
+    """Main execution function"""
+    # Load reference data
+    ref_data_path = os.path.join(DATA_DIR, "train.csv")
+    if not os.path.exists(ref_data_path):
+        print(f"Error: Reference data not found at {ref_data_path}")
         sys.exit(1)
-
-    sys.exit(0)
-
+    
+    reference_df = load_reference_data(ref_data_path)
+    
+    # Load or generate production data
+    production_data_path = os.path.join(DATA_DIR, "production.csv")
+    production_df = load_or_generate_production_data(reference_df, production_data_path)
+    
+    # Run drift detection
+    report = run_drift_detection(reference_df, production_df)
+    
+    # Print summary
+    drift_share = print_drift_summary(report)
+    
+    # Save report
+    save_report(report)
+    
+    # Check threshold and exit with appropriate code
+    if drift_share > DRIFT_THRESHOLD:
+        print(f"\n⚠️  ALERT: Drift share ({drift_share:.2%}) exceeds threshold ({DRIFT_THRESHOLD:.2%})")
+        sys.exit(1)
+    else:
+        print(f"\n✓ Drift share ({drift_share:.2%}) is within acceptable threshold ({DRIFT_THRESHOLD:.2%})")
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
