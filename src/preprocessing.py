@@ -2,11 +2,11 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 
-def load_data(raw_data_path:
+def load_data(heart_disease):
     """
     Load dataset from CSV.
     """
-    return pd.read_csv(raw_data_path)
+    return pd.read_csv(heart_disease)
 
 
 def clean_data(df, numeric_columns, categorical_columns):
@@ -30,11 +30,26 @@ def clean_data(df, numeric_columns, categorical_columns):
     return df
 
 
-def encode_categoricals(df, columns):
+def handle_missing_values(df):
+    """
+    Remove rows with missing values from the DataFrame.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("Input must be a pandas DataFrame")
+    return df.dropna()
+
+
+def encode_categorical_variables(df, columns=None):
     """
     One-hot encode categorical columns.
     """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("Input must be a pandas DataFrame")
+
     df = df.copy()
+
+    if columns is None:
+        columns = df.select_dtypes(include=[str, "category"]).columns.tolist()
 
     return pd.get_dummies(
         df,
@@ -54,7 +69,7 @@ def preprocess_data(df, numeric_columns, categorical_columns):
         categorical_columns=categorical_columns
     )
 
-    df = encode_categoricals(
+    df = encode_categorical_variables(
         df,
         columns=categorical_columns
     )
