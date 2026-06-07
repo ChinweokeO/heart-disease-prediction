@@ -58,7 +58,7 @@ Heart Disease Dataset (UCI Machine Learning Repository)
 ## Project Structure
 
 ```text
-heart-disease-mlops/
+heart-disease-prediction/
 │
 ├── configs/
 │   └── config.yaml
@@ -163,7 +163,7 @@ Clone the repository:
 
 ```bash
 git clone <repository-url>
-cd heart-disease-mlops
+cd heart-disease-prediction
 ```
 
 Create a virtual environment:
