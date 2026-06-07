@@ -2,11 +2,14 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 
-def load_data(heart_disease):
+def load_data(heart_disease, target_column=None):
     """
-    Load dataset from CSV.
+    Load dataset from CSV and optionally binarize the target column.
     """
-    return pd.read_csv(heart_disease)
+    df = pd.read_csv(heart_disease)
+    if target_column is not None and target_column in df.columns:
+        df[target_column] = (df[target_column] > 0).astype(int)
+    return df
 
 
 def clean_data(df, numeric_columns, categorical_columns):
