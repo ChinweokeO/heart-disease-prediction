@@ -2,11 +2,11 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 
-def load_data(filepath):
+def load_data(raw_data_path:
     """
     Load dataset from CSV.
     """
-    return pd.read_csv(filepath)
+    return pd.read_csv(raw_data_path)
 
 
 def clean_data(df, numeric_columns, categorical_columns):

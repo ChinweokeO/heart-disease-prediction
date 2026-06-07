@@ -3,8 +3,8 @@ import sys
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from evidently.report import Report
-from evidently.metric_preset import DataDriftPreset
+from evidently import Report
+from evidently.presets import DataDriftPreset
 
 # Configuration
 DRIFT_THRESHOLD = 0.3  # Exit with code 1 if drift share exceeds 30%
@@ -51,37 +51,43 @@ def run_drift_detection(reference_df, production_df):
     print("\nRunning drift detection...")
     
     report = Report(metrics=[DataDriftPreset()])
-    report.run(reference_data=reference_df, current_data=production_df)
+    snapshot = report.run(reference_data=reference_df, current_data=production_df)
     
-    return report
+    return snapshot
 
-def print_drift_summary(report):
+def print_drift_summary(snapshot):
     """Print summary of drifted features and overall drift share"""
     print("\n" + "="*60)
     print("DRIFT DETECTION SUMMARY")
     print("="*60)
     
-    # Extract drift results
-    results = report.as_dict()
+    # Extract drift results from the Evidently snapshot
+    results = snapshot.dict()
     metrics = results.get("metrics", [])
     
     drifted_features = []
     total_features = 0
-    drift_share = 0
+    drift_share = 0.0
     
     for metric in metrics:
-        if "data_drift" in metric.get("metric", ""):
-            metric_result = metric.get("result", {})
-            if "drift_share" in metric_result:
-                drift_share = metric_result["drift_share"]
-                print(f"Overall Drift Share: {drift_share:.2%}")
-            
-            # Check individual column drifts
-            column_drifts = metric_result.get("drift_by_columns", {})
-            for col_name, col_data in column_drifts.items():
-                if col_data.get("drift"):
-                    drifted_features.append(col_name)
-                total_features += 1
+        metric_name = metric.get("metric_name", "")
+        config = metric.get("config", {})
+        value = metric.get("value")
+        
+        if metric_name.startswith("DriftedColumnsCount") and isinstance(value, dict):
+            drift_share = value.get("share", drift_share)
+            print(f"Overall Drift Share: {drift_share:.2%}")
+            continue
+        
+        if config.get("type", "").endswith("ValueDrift"):
+            column = config.get("column")
+            threshold = config.get("threshold")
+            if column is None or not isinstance(value, (int, float)):
+                continue
+            total_features += 1
+            is_drifted = threshold is not None and value < threshold
+            if is_drifted:
+                drifted_features.append(column)
     
     if drifted_features:
         print(f"\nDrifted Features ({len(drifted_features)}):")
@@ -96,6 +102,7 @@ def print_drift_summary(report):
     return drift_share
 
 def save_report(report, output_dir=REPORTS_DIR):
+    
     """Save HTML report to reports directory"""
     Path(output_dir).mkdir(exist_ok=True)
     report_path = os.path.join(output_dir, "drift_report.html")
@@ -106,7 +113,7 @@ def save_report(report, output_dir=REPORTS_DIR):
 def main():
     """Main execution function"""
     # Load reference data
-    ref_data_path = os.path.join(DATA_DIR, "train.csv")
+    ref_data_path = os.path.join(DATA_DIR, "heart_disease.csv")
     if not os.path.exists(ref_data_path):
         print(f"Error: Reference data not found at {ref_data_path}")
         sys.exit(1)
