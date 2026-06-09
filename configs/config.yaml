@@ -18,3 +18,6 @@ training:
 metrics:
   primary_metric: f1_score
   minimum_f1: 0.60
+
+env:
+  PYTHONPATH: ${{ github.workspace }}
