@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from preprocessing import (
+from src.preprocessing import (
     encode_categorical_variables,
     handle_missing_values,
 )
