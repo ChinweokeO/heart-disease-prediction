@@ -26,8 +26,9 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest   
- train:
+          pytest tests/ -v
+
+  train:
     needs: test
     runs-on: ubuntu-latest
 
