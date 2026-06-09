@@ -52,7 +52,7 @@ def encode_categorical_variables(df, columns=None):
     df = df.copy()
 
     if columns is None:
-        columns = df.select_dtypes(include=[str, "category"]).columns.tolist()
+        columns = df.select_dtypes(include=["object", "category"]).columns.tolist()
 
     return pd.get_dummies(
         df,
