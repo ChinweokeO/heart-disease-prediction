@@ -10,6 +10,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,6 +35,9 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
 
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -47,5 +53,3 @@ jobs:
       - name: Train model
         run: |
           python src/train.py
-      env:  
-        PYTHONPATH: ${{ github.workspace }}
