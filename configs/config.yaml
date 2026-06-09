@@ -13,11 +13,8 @@ model:
   n_jobs: -1
 
 training:
-  target_column: num
+  target_column: target
 
 metrics:
   primary_metric: f1_score
   minimum_f1: 0.60
-
-env:
-  PYTHONPATH: ${{ github.workspace }}

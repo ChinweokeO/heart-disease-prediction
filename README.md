@@ -30,7 +30,7 @@ Heart Disease Dataset (UCI Machine Learning Repository)
 
 ### Target Variable
 
-**num**
+**target**
 
 * 0 = No heart disease
 * 1 = Presence of heart disease
