@@ -57,8 +57,12 @@ jobs:
           mkdir -p /tmp/dvc-store
           dvc remote add -d local /tmp/dvc-store
 
-      - name: Pull data from DVC
-        run: dvc pull
+      - name: Prepare DVC workspace
+        run: |
+          dvc status
+          dvc pull --force
+          dvc checkout
+        
 
       - name: Verify data exists
         run: ls data/
