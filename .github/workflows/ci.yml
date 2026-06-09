@@ -54,13 +54,14 @@ jobs:
 
       - name: Setup DVC remote
         run: |
-          mkdir -p /tmp/dvc-store
-          dvc remote add -d local /tmp/dvc-store
+          # Use the configured DagsHub origin remote for pulls.
+          # If auth is required, configure GitHub Secrets for DVC_USER and DVC_PASSWORD.
+          dvc remote list
 
       - name: Prepare DVC workspace
         run: |
           dvc status
-          dvc pull --force
+          dvc pull --force -r origin
           dvc checkout
         
 
