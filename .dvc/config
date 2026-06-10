@@ -1,6 +1,4 @@
 [core]
     remote = origin
-['remote "myremote"']
-    url = ../tmpdvc-remote
 ['remote "origin"']
     url = https://dagshub.com/ChinweokeO/heart_disease_prediction.dvc
