@@ -1,7 +1,7 @@
 venv/
 __pycache__/
 *.pyc
-#data/heart_disease.csv
+# data/heart_disease.csv
 mlruns/
 models/
 reports/
