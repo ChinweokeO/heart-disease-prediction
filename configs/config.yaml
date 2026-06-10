@@ -5,9 +5,9 @@ data:
 
 model:
   type: RandomForestClassifier
-  n_estimators: 150
-  max_depth: null
-  min_samples_split: 4
+  n_estimators: 275
+  max_depth: Null
+  min_samples_split: 5
   min_samples_leaf: 2
   class_weight: balanced
   n_jobs: -1

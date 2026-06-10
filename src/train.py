@@ -68,8 +68,6 @@ if __name__ == "__main__":
         print("Warning: mlflow is not installed. Skipping MLflow logging.")
 
     if mlflow is not None:
-        mlflow.set_tracking_uri("file://" + os.path.abspath("mlruns"))
-        
         with mlflow.start_run():
             mlflow.log_params(config["model"])
             mlflow.log_param("data_version", "heart_v1")
