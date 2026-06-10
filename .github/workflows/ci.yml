@@ -38,6 +38,11 @@ jobs:
       - name: Verify dataset exists
         run: ls data/
 
+      - name: Make data available
+        run: |
+          mkdir -p data
+          cp data/heart_disease.csv data/heart_disease.csv
+
       - name: Run tests
         run: pytest tests/ -v
 
