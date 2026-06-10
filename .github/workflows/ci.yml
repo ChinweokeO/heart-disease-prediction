@@ -33,7 +33,6 @@ jobs:
       - name: Pull data (required for tests)
         run: |
           dvc pull
-          dvc checkout
 
       - name: Verify dataset exists
         run: ls data/
