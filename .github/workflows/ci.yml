@@ -32,7 +32,8 @@ jobs:
 
       - name: Pull data (required for tests)
         run: |
-          dvc pull
+          dvc pull --force
+          dvc checkout
 
       - name: Verify dataset exists
         run: ls data/
@@ -68,7 +69,7 @@ jobs:
 
       - name: Pull data
         run: |
-          dvc pull
+          dvc pull --force
           dvc checkout
 
       - name: Verify dataset exists
