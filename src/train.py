@@ -3,6 +3,8 @@ import yaml
 import os
 import mlflow
 
+print("TRACKING URI:", mlflow.get_tracking_uri())
+
 # allow local file store (MLflow 3.x requirement)
 os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
 
