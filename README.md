@@ -283,6 +283,37 @@ Outputs:
 
 ---
 
+# Data Drift Analysis
+
+## Summary
+
+A drift analysis was performed using Evidently to compare the reference dataset against a current dataset. Several features exhibited measurable drift.
+
+## Drifted Features
+
+* age
+* cholesterol (chol)
+* resting blood pressure (trestbps)
+
+## Potential Impact
+
+Changes in the distribution of these features may reduce model performance because the model was trained on historical patterns that may no longer represent the current patient population.
+
+Potential effects include:
+
+* Reduced prediction accuracy
+* Lower F1 score
+* Increased false positive and false negative rates
+
+## Recommended Action
+
+The model should continue to be monitored regularly. If drift persists or model performance declines below acceptable thresholds, retraining using more recent data is recommended.
+
+## Conclusion
+
+Although the model remains operational, continued monitoring and periodic retraining are advised to ensure reliable heart disease predictions.
+
+
 ## Author
 
 **Chinweoke Stephanie Okonkwo**
