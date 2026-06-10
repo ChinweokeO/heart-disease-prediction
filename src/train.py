@@ -1,6 +1,13 @@
-import os
 import sys
 import yaml
+import os
+import mlflow
+
+# allow local file store (MLflow 3.x requirement)
+os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
+
+# use simple local folder (NO file://)
+mlflow.set_tracking_uri("mlruns")
 
 from sklearn.ensemble import RandomForestClassifier
 
@@ -60,15 +67,16 @@ if __name__ == "__main__":
     config = load_config(config_path)
     model, metrics = train_model(config)
 
-    try:
-        import mlflow
-        import mlflow.sklearn
-    except ImportError:
-        mlflow = None
-        print("Warning: mlflow is not installed. Skipping MLflow logging.")
-
+    #try:
+        #import mlflow
+        #import mlflow.sklearn
+    #except ImportError:
+       # mlflow = None
+        #print("Warning: mlflow is not installed. Skipping MLflow logging.")
+    
     if mlflow is not None:
-        with mlflow.start_run():
+        
+       with mlflow.start_run():
             mlflow.log_params(config["model"])
             mlflow.log_param("data_version", "heart_v1")
             mlflow.log_metrics({k: v for k, v in metrics.items() if v is not None})
