@@ -5,7 +5,7 @@ data:
 
 model:
   type: RandomForestClassifier
-  n_estimators: 200
+  n_estimators: 50
   max_depth: null
   min_samples_split: 5
   min_samples_leaf: 2
